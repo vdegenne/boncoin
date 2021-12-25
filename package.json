@@ -1,0 +1,35 @@
+{
+  "name": "boncoin",
+  "version": "1.0.0",
+  "author": "Valentin Degenne",
+  "license": "ISC",
+  "devDependencies": {
+    "@koa/router": "^10.1.1",
+    "@material/mwc-button": "^0.25.3",
+    "@material/mwc-icon": "^0.25.3",
+    "@material/mwc-icon-button": "^0.25.3",
+    "@material/mwc-snackbar": "^0.25.3",
+    "@material/mwc-textarea": "^0.25.3",
+    "@material/mwc-textfield": "^0.25.3",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^13.1.1",
+    "@rollup/plugin-typescript": "^8.3.0",
+    "@types/javascript-time-ago": "^2.0.3",
+    "@vdegenne/clipboard-copy": "^3.1.0",
+    "browser-sync": "^2.27.7",
+    "javascript-time-ago": "^2.3.10",
+    "koa": "^2.13.4",
+    "koa-bodyparser": "^4.3.0",
+    "koa-static": "^5.0.0",
+    "lit": "^2.0.2",
+    "nodemon": "^2.0.15",
+    "open": "^8.4.0",
+    "rollup": "^2.62.0",
+    "typescript": "^4.5.4"
+  },
+  "scripts": {
+    "watch": "rollup -cw",
+    "watch:server": "nodemon server.js -e js -i app.js",
+    "browser-sync": "browser-sync start --proxy http://localhost:8005 --files app.js --no-notify"
+  }
+}

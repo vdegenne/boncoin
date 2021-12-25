@@ -1,0 +1,4 @@
+node_modules
+objects/*
+!objects/readme.md
+!objects/test
