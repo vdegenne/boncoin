@@ -1,9 +1,4 @@
-import typescript from '@rollup/plugin-typescript'
-import nodeResolve from "@rollup/plugin-node-resolve";
-import json from '@rollup/plugin-json'
+import front from './src/front/rollup.config'
+import back from './src/server/rollup.config'
 
-export default {
-  input: 'src/app.ts',
-  output: { file: 'app.js', format: 'esm' },
-  plugins: [nodeResolve(), typescript(), json()]
-}
+export default [ front, back ]
