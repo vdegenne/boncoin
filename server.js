@@ -2,10 +2,9 @@ const Koa = require('koa')
 const KoaStatic = require('koa-static')
 const bodyParser = require('koa-bodyparser')
 const Router = require('@koa/router')
-const { readFileSync, readdirSync, statSync, writeFileSync, existsSync, mkdirSync } = require('fs')
+const { readFileSync, readdirSync, statSync, writeFileSync, existsSync, mkdirSync, rmSync } = require('fs')
 const open = require('open')
-const { resolve } = require('path')
-const os = require('os')
+const { resolve, join } = require('path')
 
 const app = new Koa()
 const router = new Router()
@@ -14,11 +13,11 @@ app.use(bodyParser())
 
 router.get('/list', function (ctx) {
   // Get the directories
-  const directories = readdirSync('objects').filter(f => statSync(`objects/${f}`).isDirectory())
+  const directories = readdirSync('objects').filter(f => statSync(join('objects', f)).isDirectory())
   // Build the data map
   const data = directories.map(function (d) {
-    const dataJsonFilepath = `objects/${d}/data.json`
-    const descriptionFilepath = `objects/${d}/description.txt`
+    const dataJsonFilepath = join('objects', d, 'data.json')
+    const descriptionFilepath = join('objects', d, 'description.txt')
     let dataJson = { // default
       title: d,
       date: Date.now(),
@@ -31,7 +30,7 @@ router.get('/list', function (ctx) {
       dataJson = JSON.parse(readFileSync(dataJsonFilepath))
     }
     catch (e) {
-      console.log('creating files')
+      // console.log('creating files')
       // Create the file if it doesn't exist
       writeFileSync(dataJsonFilepath, JSON.stringify(dataJson, null, 2))
     }
@@ -41,14 +40,14 @@ router.get('/list', function (ctx) {
       description = readFileSync(descriptionFilepath).toString()
     }
     catch (e) {
-      console.log('creating description file')
+      // console.log('creating description file')
       writeFileSync(descriptionFilepath, description)
     }
 
     /* Create the img directory if it doesn't exist */
     // @TODO: move image files (if any) from the root to the newly created directory
-    if (!existsSync(`objects/${d}/img`)) {
-      mkdirSync(`objects/${d}/img`)
+    if (!existsSync(join('objects', d, 'img'))) {
+      mkdirSync(join('objects', d, 'img'))
     }
 
     return [d, { ...dataJson, description }]
@@ -58,20 +57,20 @@ router.get('/list', function (ctx) {
 
 router.post('/update/:dirname', function (ctx) {
   // Get the data.json
-  const object = JSON.parse(readFileSync(`objects/${ctx.params.dirname}/data.json`))
+  const object = JSON.parse(readFileSync(join('objects', ctx.params.dirname, 'data.json')))
   // Update the date
   object.date = Date.now()
   // Save the data.json
-  writeFileSync(`objects/${ctx.params.dirname}/data.json`, JSON.stringify(object, null, 2))
+  writeFileSync(join('objects', ctx.params.dirname, 'data.json'), JSON.stringify(object, null, 2))
   ctx.body = ''
 })
 
 router.post('/save/:dirname', function (ctx) {
   // Save the description
-  writeFileSync(`objects/${ctx.params.dirname}/description.txt`, ctx.request.body.description)
+  writeFileSync(join('objects', ctx.params.dirname, 'description.txt'), ctx.request.body.description)
   // Save the data.json
   writeFileSync(
-    `objects/${ctx.params.dirname}/data.json`,
+    join('objects', ctx.params.dirname, 'data.json'),
     JSON.stringify(
       (({description, ...o}) => o)(ctx.request.body),
       null,
@@ -81,12 +80,22 @@ router.post('/save/:dirname', function (ctx) {
   ctx.body = ''
 })
 
+router.post('/create/:dirname', function (ctx) {
+  mkdirSync(join('objects', ctx.params.dirname))
+  ctx.body = ''
+})
+
 router.get('/open/:dirname', async function (ctx) {
-  const path = resolve('objects', ctx.params.dirname, 'img')
+  const path = join('objects', ctx.params.dirname, 'img')
   // console.log(path)
   // await open(path)
   await open(path, { app: { name: 'Explorer' }})
   // open(`.\\objects\\${ctx.params.dirname}\\img`)
+  ctx.body = ''
+})
+
+router.post('/remove/:dirname', function (ctx) {
+  rmSync(join('objects', ctx.params.dirname), { recursive: true, force: true })
   ctx.body = ''
 })
 

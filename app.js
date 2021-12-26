@@ -7544,10 +7544,11 @@ const timeAgo = new TimeAgo('fr-FR');
 let BonCoin = class BonCoin extends s$1 {
     constructor() {
         super();
-        fetch('/list').then(async (res) => {
-            this._data = await res.json();
-            // this.requestUpdate()
-        });
+        this.fetchData();
+        // fetch('/list').then(async res => {
+        //   this._data = await res.json()
+        //   // this.requestUpdate()
+        // })
         /* Keyboard Events */
         window.addEventListener('keyup', e => {
             if (e.key === 't') {
@@ -7555,6 +7556,18 @@ let BonCoin = class BonCoin extends s$1 {
             }
             if (e.key === 'd') {
                 this.copyDescription();
+            }
+        });
+        window.addEventListener('mousedown', async (e) => {
+            var _a, _b;
+            if (e.button === 3 && this.dirname !== undefined) {
+                (_a = this.shadowRoot.querySelector('mwc-textarea')) === null || _a === void 0 ? void 0 : _a.blur();
+                (_b = this.shadowRoot.querySelector('mwc-textfield[label=prix]')) === null || _b === void 0 ? void 0 : _b.blur();
+                this._lastDirname = this.dirname;
+                this.dirname = undefined;
+            }
+            if (e.button === 4 && this.dirname === undefined) {
+                this.dirname = this._lastDirname;
             }
         });
     }
@@ -7574,6 +7587,9 @@ let BonCoin = class BonCoin extends s$1 {
                 return p `<div class="object" @click=${() => this.onObjectClick(dirname)}><span>${meta.title}</span> <span>${timeAgo.format(meta.date)}</span></div>`;
             })}
       </div>
+
+      <div style="text-align:center"><mwc-button unelevated label="nouvel objet" icon="add"
+        @click=${() => this.addNewObject()}></mwc-button></div>
       `;
         }
         else {
@@ -7581,47 +7597,76 @@ let BonCoin = class BonCoin extends s$1 {
             const o = this._data[this.dirname];
             return p `
       <header style="display:flex;align-items:center;margin-bottom:12px;">
-        <mwc-icon-button icon="arrow_back" @click=${() => this.dirname = undefined}></mwc-icon-button>
+        <mwc-icon-button icon="arrow_back" @click=${() => { this._lastDirname = this.dirname; this.dirname = undefined; }}></mwc-icon-button>
         <span style="flex:1;padding:0 5px;">${this.dirname}</span>
         <mwc-icon-button icon="save" @click=${() => this.saveObject()}></mwc-icon-button>
+        <mwc-icon-button icon="delete" @click=${() => this.removeObject()}></mwc-icon-button>
       </header>
 
       <mwc-textfield label="titre" style="width:100%" value=${o.title}
-        @keyup=${e => e.stopPropagation()}></mwc-textfield>
+        @keyup=${e => e.stopPropagation()}
+        @change=${() => this.saveObject()}></mwc-textfield>
       <div style="text-align:right;margin-bottom:10px"><mwc-button label="copier titre" @click=${() => this.copyTitle()}></mwc-button></div>
 
       <mwc-textarea label="description" style="width:100%" rows=20 value=${o.description}
-        @keyup=${e => e.stopPropagation()}></mwc-textarea>
+        @keyup=${e => e.stopPropagation()}
+        @change=${() => this.saveObject()}></mwc-textarea>
       <div style="text-align:right;margin-bottom:10px;"><mwc-button label="copier description" @click=${() => this.copyDescription()}></mwc-button></div>
 
-      <mwc-textfield label="prix" style="width:100%;margin-bottom:10px;" type="number" min=0 max=10000 step=1 value=${o.price}></mwc-textfield>
+      <mwc-textfield label="prix" style="width:100%;margin-bottom:10px;" type="number" min=0 max=10000 step=1 value=${o.price}
+        @change=${() => this.saveObject()}></mwc-textfield>
 
       <div style="display:flex;justify-content:center">
-        <div style="display:flex;flex-direction:column;color:grey">
+        <div style="display:flex;flex-direction:column;color:grey;margin-right:6px">
           <mwc-button unelevated label="mettre à jour date" icon="event" style="--mdc-theme-primary:#ffeb3b;--mdc-theme-on-primary:black"
             @click=${() => this.onDateClick()}></mwc-button>
           <span style="padding:2px 0 0 3px;font-size:0.9em">${timeAgo.format(o.date)}</span>
         </div>
-        <mwc-button unelevated label="sauvegarder" icon="save" style="margin: 0 6px"
-          @click=${() => this.saveObject()}></mwc-button>
+        <!-- <mwc-button unelevated label="sauvegarder" icon="save" style="margin: 0 6px"
+          @click=${() => this.saveObject()}></mwc-button> -->
         <mwc-button unelevated label="images" icon="folder" style="--mdc-theme-primary:#f57c00"
           @click=${() => this.openDirectory()}></mwc-button>
       </div>
       `;
         }
     }
+    async removeObject() {
+        const confirmed = confirm('Es-tu sûr de vouloir supprimer cet objet ?');
+        if (confirmed) {
+            await fetch(`/remove/${this.dirname}`, { method: 'POST' });
+            this.dirname = undefined;
+            await this.fetchData();
+            window.toast('objet supprimé');
+        }
+        else {
+            window.toast('annulation');
+            return;
+        }
+    }
+    async addNewObject() {
+        const name = prompt('Nom mémotechnique');
+        if (name === null || name === '') {
+            window.toast('annulation');
+            return;
+        }
+        // Post the object
+        await fetch(`/create/${name}`, { method: 'POST' });
+        await this.fetchData();
+        this.dirname = name;
+    }
     onDateClick() {
         this._data[this.dirname].date = Date.now();
         this.requestUpdate();
         fetch(`/update/${this.dirname}`, { method: 'POST' });
     }
-    async saveObject() {
-        const object = this._data[this.dirname];
+    saveObject() {
+        const dirname = this.dirname || this._lastDirname;
+        const object = this._data[dirname];
         object.title = this.shadowRoot.querySelector('mwc-textfield[label=titre]').value;
         object.description = this.shadowRoot.querySelector('mwc-textarea').value;
         object.price = parseFloat(this.shadowRoot.querySelector('mwc-textfield[label=prix]').value);
         // save data to the server
-        fetch(`/save/${this.dirname}`, {
+        fetch(`/save/${dirname}`, {
             method: 'POST',
             headers: {
                 'content-type': 'application/json'
@@ -7629,6 +7674,7 @@ let BonCoin = class BonCoin extends s$1 {
             body: JSON.stringify(object)
         });
         window.toast('sauvegardé');
+        // this.requestUpdate()
     }
     onObjectClick(dirname) {
         this.dirname = dirname;
@@ -7648,8 +7694,18 @@ let BonCoin = class BonCoin extends s$1 {
     openDirectory() {
         fetch(`/open/${this.dirname}`);
     }
+    async fetchData() {
+        const response = await fetch('/list');
+        this._data = await response.json();
+        window.toast('données actualisées');
+    }
 };
 BonCoin.styles = r$4 `
+  :host {
+    display: block;
+    max-width: 700px;
+    margin: 0 auto;
+  }
   .object {
     display: flex;
     justify-content: space-between;
