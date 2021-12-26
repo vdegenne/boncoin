@@ -26,9 +26,11 @@
     "nodemon": "^2.0.15",
     "open": "^8.4.0",
     "rollup": "^2.62.0",
+    "rollup-plugin-terser": "^7.0.2",
     "typescript": "^4.5.4"
   },
   "scripts": {
+    "build": "rollup -c --environment minify",
     "watch": "rollup -cw",
     "watch:server": "nodemon server.js -e js -i app.js",
     "browser-sync": "browser-sync start --proxy http://localhost:8005 --files app.js --no-notify"
